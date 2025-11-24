@@ -2,10 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+:root {
   font-family: 'Rubik', sans-serif;
   background-color: #f8fafc;
   -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
 }
 
 /* Hide scrollbar for chrome/safari/opera */
