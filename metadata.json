@@ -1,0 +1,7 @@
+{
+  "name": "AyalaTouch",
+  "description": "מערכת ניהול הזמנות למסעדת איילה פשוט טעים. עיצוב חדשני, תמיכה בעברית (RTL), וניהול שולחנות בזמן אמת.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
