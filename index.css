@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -11,9 +10,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
+/* CRITICAL FIX FOR MOBILE LAYOUT */
+html, body, #root {
+  height: 100%;
+  width: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden; /* Prevent window scrolling */
 }
 
 /* Hide scrollbar for chrome/safari/opera */
