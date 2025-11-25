@@ -289,7 +289,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="flex w-full h-full bg-slate-50 font-sans text-slate-900 flex-col md:flex-row">
+    <div className="flex w-full h-[100dvh] bg-slate-50 font-sans text-slate-900 flex-col md:flex-row overflow-hidden">
       <NetworkStatus />
       
       {/* Sidebar - Fixed Bottom on Mobile */}
@@ -306,7 +306,8 @@ const App: React.FC = () => {
 
       {/* Main Content - Scrollable */}
       <main className="flex-1 h-full relative order-1 md:order-2 bg-slate-50 overflow-y-auto overflow-x-hidden">
-        <div className="min-h-full pb-24 md:pb-0"> {/* CRITICAL: Padding bottom for mobile nav */}
+        {/* Added scrollable wrapper with padding for mobile nav */}
+        <div className="min-h-full pb-24 md:pb-6 pt-10 md:pt-0">
             {activeView === 'floorplan' && (
             <TableMap tables={tables} onTableSelect={handleTableSelect} />
             )}
