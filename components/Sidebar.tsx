@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { LayoutGrid, Coffee, Settings, ListChecks, ChefHat, LogOut, LayoutDashboard } from 'lucide-react';
 
@@ -13,20 +12,57 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openChecklist, onOpenAdmin, isAdmin, onLogout }) => {
   const navItems = [
-    { id: 'floorplan', icon: LayoutGrid, label: 'מפת שולחנות' },
+    { id: 'floorplan', icon: LayoutGrid, label: 'שולחנות' },
     { id: 'kitchen', icon: ChefHat, label: 'מטבח' },
     // Admin items
     ...(isAdmin ? [
-        { id: 'admin_dashboard', icon: LayoutDashboard, label: 'דשבורד ניהול' },
-        { id: 'menu_editor', icon: Coffee, label: 'ניהול תפריטים' }
+        { id: 'admin_dashboard', icon: LayoutDashboard, label: 'ניהול' },
+        { id: 'menu_editor', icon: Coffee, label: 'תפריטים' }
     ] : []),
   ];
 
-  return (
-    <div className="w-20 md:w-64 bg-secondary text-white flex flex-col h-screen sticky top-0 shadow-2xl z-50">
-      <div className="p-6 flex items-center justify-center md:justify-start gap-3 border-b border-slate-700/50 bg-slate-900/50">
+  const handleAdminClick = () => {
+    if (isAdmin) {
+      if (window.confirm('האם להתנתק ממערכת הניהול?')) {
+        onLogout();
+      }
+    } else {
+      onOpenAdmin();
+    }
+  };
+
+  // Mobile Bottom Navigation - FIXED POSITION
+  const MobileNav = () => (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-secondary text-white pb-safe pt-2 px-4 shadow-[0_-4px_20px_rgba(0,0,0,0.2)] z-50 flex justify-between items-center h-16 safe-area-bottom border-t border-slate-700">
+      {navItems.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => setView(item.id)}
+          className={`flex flex-col items-center justify-center w-full gap-1 transition-colors ${
+            activeView === item.id ? 'text-primary' : 'text-slate-400'
+          }`}
+        >
+          <item.icon size={20} strokeWidth={activeView === item.id ? 2.5 : 2} />
+          <span className="text-[10px] font-medium">{item.label}</span>
+        </button>
+      ))}
+      
+      <button
+        onClick={handleAdminClick}
+        className={`flex flex-col items-center justify-center w-full gap-1 ${isAdmin ? 'text-red-400' : 'text-slate-400'}`}
+      >
+        {isAdmin ? <LogOut size={20} /> : <Settings size={20} />}
+        <span className="text-[10px] font-medium">{isAdmin ? 'יציאה' : 'הגדרות'}</span>
+      </button>
+    </div>
+  );
+
+  // Desktop Sidebar
+  const DesktopSidebar = () => (
+    <div className="hidden md:flex w-64 bg-secondary text-white flex-col h-screen sticky top-0 shadow-2xl z-50">
+      <div className="p-6 flex items-center justify-start gap-3 border-b border-slate-700/50 bg-slate-900/50">
         <div className="w-10 h-10 bg-gradient-to-br from-primary to-orange-600 rounded-xl flex items-center justify-center font-bold text-xl shadow-lg shadow-orange-500/20">A</div>
-        <div className="hidden md:block">
+        <div>
             <span className="text-xl font-bold block leading-none">AyalaTouch</span>
             <span className="text-[10px] text-gray-400 uppercase tracking-widest">System</span>
         </div>
@@ -44,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openCheck
             }`}
           >
             <item.icon size={24} className={`transition-transform duration-300 ${activeView === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
-            <span className="hidden md:block font-medium text-sm tracking-wide">{item.label}</span>
+            <span className="font-medium text-sm tracking-wide">{item.label}</span>
           </button>
         ))}
       </nav>
@@ -54,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openCheck
             onClick={openChecklist}
             className="flex items-center gap-3 p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors">
           <ListChecks size={20} />
-          <span className="hidden md:block text-sm">רשימת דרישות</span>
+          <span className="text-sm">רשימת דרישות</span>
         </button>
         
         {isAdmin ? (
@@ -62,17 +98,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openCheck
             onClick={onLogout}
             className="flex items-center gap-3 p-3 text-red-400 hover:text-white hover:bg-red-900/30 rounded-xl transition-colors">
             <LogOut size={20} />
-            <span className="hidden md:block text-sm">יציאה מניהול</span>
+            <span className="text-sm">יציאה מניהול</span>
           </button>
         ) : (
           <button 
             onClick={onOpenAdmin}
             className="flex items-center gap-3 p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors">
             <Settings size={20} />
-            <span className="hidden md:block text-sm">כניסת מנהל</span>
+            <span className="text-sm">כניסת מנהל</span>
           </button>
         )}
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <DesktopSidebar />
+      <MobileNav />
+    </>
   );
 };

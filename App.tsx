@@ -10,11 +10,11 @@ import { Toast, ToastType } from './components/Toast';
 import { NetworkStatus } from './components/NetworkStatus'; 
 import { INITIAL_TABLES, INITIAL_MENUS } from './constants';
 import { Table, TableStatus, OrderItem, Menu, PastOrder } from './types';
+import { Loader2, CheckCircle, ChefHat, X, Lock, Clock } from 'lucide-react';
 import { getWaitStaffChecklist } from './services/geminiService';
 import { generateBillHTML, generateKitchenTicketHTML } from './services/printerService';
-import { Loader2, CheckCircle, ChefHat, X, Lock, Clock } from 'lucide-react';
 
-// --- Custom Hook for Persistent State ---
+// ... usePersistentState hook remains the same ...
 function usePersistentState<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [state, setState] = useState<T>(() => {
     try {
@@ -106,7 +106,7 @@ const App: React.FC = () => {
     });
   };
 
-  // --- Simulation Handlers ---
+  // ... All handlers remain same (RunSimulation, ResetData, etc.) ...
   const handleRunSimulation = () => {
       requestConfirmation(
           'הפעלת מצב הדגמה',
@@ -134,23 +134,34 @@ const App: React.FC = () => {
             demoTables[2].status = TableStatus.ORDERED;
             demoTables[2].guests = 3;
             demoTables[2].startTime = new Date(Date.now() - 1000 * 60 * 5); 
-            demoTables[2].currentOrder = [getI('בוקר יחיד', 'ביצת עין'), getI('שקשוקה'), getI('קולה זירו')].filter(Boolean);
+            demoTables[2].currentOrder = [
+                getI('בוקר יחיד', 'ביצת עין'),
+                getI('שקשוקה'),
+                getI('קולה זירו')
+            ].filter(Boolean);
 
             demoTables[3].status = TableStatus.PAYMENT;
             demoTables[3].guests = 4;
             demoTables[3].startTime = new Date(Date.now() - 1000 * 60 * 55);
-            demoTables[3].currentOrder = [getI('סלט יווני'), getI('טוסט קלאסי'), getI('פסטה'), getI('לימונדה'), getI('תפוזים')].filter(Boolean);
+            demoTables[3].currentOrder = [
+                getI('סלט יווני'), getI('טוסט קלאסי'), getI('פסטה'), getI('לימונדה'), getI('תפוזים')
+            ].filter(Boolean);
 
             demoTables[5].status = TableStatus.ORDERED;
             demoTables[5].guests = 2;
             demoTables[5].startTime = new Date(Date.now() - 1000 * 60 * 25); 
-            demoTables[5].currentOrder = [getI('רביולי', 'בלי פרמזן', true), getI('פילה סלמון', '', true)].filter(Boolean);
+            demoTables[5].currentOrder = [
+                getI('רביולי', 'בלי פרמזן', true),
+                getI('פילה סלמון', '', true)
+            ].filter(Boolean);
             if (demoTables[5].currentOrder.length < 2) demoTables[5].currentOrder.push(getI('לזניה', '', true));
 
             demoTables[6].status = TableStatus.ORDERED;
             demoTables[6].guests = 5;
             demoTables[6].startTime = new Date(Date.now() - 1000 * 60 * 15);
-            demoTables[6].currentOrder = [getI('כריך בלקני'), getI('כריך סביח'), getI('סלט קינואה'), getI('קולה'), getI('מים')].filter(Boolean);
+            demoTables[6].currentOrder = [
+                getI('כריך בלקני'), getI('כריך סביח'), getI('סלט קינואה'), getI('קולה'), getI('מים')
+            ].filter(Boolean);
 
             demoTables[8].status = TableStatus.OCCUPIED;
             demoTables[8].guests = 1;
@@ -177,7 +188,6 @@ const App: React.FC = () => {
       );
   };
 
-  // --- Handlers ---
   const handleTableSelect = (id: number) => { setSelectedTableId(id); };
   const handleUpdateOrder = (items: OrderItem[]) => {
     setTables(prev => prev.map(t => t.id === selectedTableId ? { ...t, currentOrder: items, status: items.length > 0 ? TableStatus.OCCUPIED : TableStatus.FREE } : t));
@@ -292,20 +302,18 @@ const App: React.FC = () => {
     <div className="flex w-full h-[100dvh] bg-slate-50 font-sans text-slate-900 flex-col md:flex-row overflow-hidden">
       <NetworkStatus />
       
-      {/* Sidebar - Fixed Bottom on Mobile */}
-      <div className="order-2 md:order-1 w-full md:w-auto z-50 shrink-0">
-        <Sidebar 
-            activeView={activeView} 
-            setView={setActiveView} 
-            openChecklist={fetchChecklist}
-            onOpenAdmin={() => setShowAdminLogin(true)}
-            isAdmin={isAdmin}
-            onLogout={() => { setIsAdmin(false); setActiveView('floorplan'); }}
-        />
-      </div>
+      {/* Sidebar is now entirely managed inside Sidebar.tsx via fixed positioning on mobile */}
+      <Sidebar 
+          activeView={activeView} 
+          setView={setActiveView} 
+          openChecklist={fetchChecklist}
+          onOpenAdmin={() => setShowAdminLogin(true)}
+          isAdmin={isAdmin}
+          onLogout={() => { setIsAdmin(false); setActiveView('floorplan'); }}
+      />
 
       {/* Main Content - Scrollable */}
-      <main className="flex-1 h-full relative order-1 md:order-2 bg-slate-50 overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 h-full relative bg-slate-50 overflow-y-auto overflow-x-hidden">
         {/* Added scrollable wrapper with padding for mobile nav */}
         <div className="min-h-full pb-24 md:pb-6 pt-10 md:pt-0">
             {activeView === 'floorplan' && (
