@@ -36,8 +36,7 @@ export const TableMap: React.FC<TableMapProps> = ({ tables, onTableSelect }) => 
   };
 
   return (
-    // Added pb-24 for mobile to prevent navbar overlap
-    <div className="p-4 md:p-6 h-full overflow-y-auto pb-24 md:pb-6">
+    <div className="p-4 md:p-6 h-full overflow-y-auto pb-32 md:pb-6"> {/* Increased padding-bottom even more to 32 (8rem) */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-secondary">מפת שולחנות</h2>
         <span className="text-sm bg-white px-3 py-1 rounded-full shadow-sm text-gray-500">

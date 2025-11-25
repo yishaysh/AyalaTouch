@@ -474,7 +474,7 @@ const App: React.FC = () => {
         onLogout={() => { setIsAdmin(false); setActiveView('floorplan'); }}
       />
 
-      <main className="flex-1 relative overflow-hidden h-full md:mt-0 mt-8"> {/* Removed pb-16 from here */}
+      <main className="flex-1 relative overflow-hidden h-full md:mt-0 mt-10"> {/* Changed mt-8 to mt-10 */}
         {activeView === 'floorplan' && (
           <TableMap tables={tables} onTableSelect={handleTableSelect} />
         )}
