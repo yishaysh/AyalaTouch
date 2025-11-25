@@ -402,7 +402,7 @@ const App: React.FC = () => {
 
   // Render Kitchen View
   const renderKitchen = () => (
-     <div className="p-4 md:p-6 h-full overflow-y-auto pb-24 md:pb-6">
+     <div className="p-4 md:p-6 h-full overflow-y-auto pb-32 md:pb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-secondary mb-6 flex items-center gap-3">
             <ChefHat /> מסך מטבח
         </h2>
@@ -453,7 +453,8 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 flex-col md:flex-row overflow-hidden">
+    // Used h-[100dvh] for dynamic viewport height on mobile
+    <div className="flex h-[100dvh] bg-slate-50 font-sans text-slate-900 flex-col md:flex-row overflow-hidden">
       <NetworkStatus />
       
       {/* Sidebar - Fixed Bottom on Mobile */}
@@ -469,7 +470,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 relative overflow-hidden h-full order-1 md:order-2 bg-slate-50 pt-10 md:pt-0 pb-16 md:pb-0">
+      <main className="flex-1 relative overflow-hidden h-full order-1 md:order-2 bg-slate-50 pt-10 md:pt-0">
         {activeView === 'floorplan' && (
           <TableMap tables={tables} onTableSelect={handleTableSelect} />
         )}

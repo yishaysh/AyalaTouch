@@ -36,7 +36,7 @@ export const TableMap: React.FC<TableMapProps> = ({ tables, onTableSelect }) => 
   };
 
   return (
-    <div className="p-4 md:p-6 h-full overflow-y-auto pb-32 md:pb-6"> {/* High padding bottom for mobile nav clearance */}
+    <div className="p-4 md:p-6 h-full overflow-y-auto pb-32 md:pb-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-secondary">מפת שולחנות</h2>
         <span className="text-sm bg-white px-3 py-1 rounded-full shadow-sm text-gray-500">
