@@ -412,7 +412,7 @@ const App: React.FC = () => {
 
   // Render Kitchen View
   const renderKitchen = () => (
-     <div className="p-4 md:p-6 h-full overflow-y-auto pb-20 md:pb-6">
+     <div className="p-4 md:p-6 h-full overflow-y-auto pb-24 md:pb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-secondary mb-6 flex items-center gap-3">
             <ChefHat /> מסך מטבח
         </h2>
@@ -474,7 +474,7 @@ const App: React.FC = () => {
         onLogout={() => { setIsAdmin(false); setActiveView('floorplan'); }}
       />
 
-      <main className="flex-1 relative overflow-hidden h-full pb-16 md:pb-0 mt-8 md:mt-0">
+      <main className="flex-1 relative overflow-hidden h-full md:mt-0 mt-8"> {/* Removed pb-16 from here */}
         {activeView === 'floorplan' && (
           <TableMap tables={tables} onTableSelect={handleTableSelect} />
         )}
@@ -521,7 +521,7 @@ const App: React.FC = () => {
                             <Lock size={32} className="text-secondary" />
                         </div>
                         <h2 className="text-2xl font-bold text-secondary">כניסת מנהל</h2>
-                        <p className="text-gray-500">הזן קוד גישה לניהול </p>
+                        <p className="text-gray-500">הזן קוד גישה לניהול (1234)</p>
                     </div>
                     <form onSubmit={handleAdminLogin} className="space-y-4">
                         <input 

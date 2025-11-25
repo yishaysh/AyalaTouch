@@ -31,44 +31,49 @@ export const TableMap: React.FC<TableMapProps> = ({ tables, onTableSelect }) => 
   const formatTime = (date?: Date | string) => {
     if (!date) return '';
     const d = new Date(date);
-    // Ensure valid date before formatting
     if (isNaN(d.getTime())) return '';
     return d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <div className="p-6 h-full overflow-y-auto">
-      <h2 className="text-3xl font-bold text-secondary mb-8">מפת שולחנות</h2>
+    // Added pb-24 for mobile to prevent navbar overlap
+    <div className="p-4 md:p-6 h-full overflow-y-auto pb-24 md:pb-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl md:text-3xl font-bold text-secondary">מפת שולחנות</h2>
+        <span className="text-sm bg-white px-3 py-1 rounded-full shadow-sm text-gray-500">
+           {tables.filter(t => t.status !== TableStatus.FREE).length} פעילים
+        </span>
+      </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
         {tables.map((table) => (
           <button
             key={table.id}
             onClick={() => onTableSelect(table.id)}
             className={`
-              relative p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-3 aspect-square
-              transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-1
+              relative p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-3 aspect-[1/1] md:aspect-square
+              transition-all duration-200 shadow-sm active:scale-95 hover:shadow-md hover:-translate-y-1
               ${getStatusColor(table.status)}
             `}
           >
-            <div className="absolute top-3 left-3 text-sm font-bold opacity-60">
+            <div className="absolute top-2 left-2 md:top-3 md:left-3 text-xs md:text-sm font-bold opacity-60">
               #{table.id}
             </div>
             
             {table.startTime && (
-              <div className="absolute top-3 right-3 flex items-center gap-1 text-xs font-medium opacity-70 bg-white/50 px-2 py-1 rounded-full">
-                <Clock size={12} />
+              <div className="absolute top-2 right-2 md:top-3 md:right-3 flex items-center gap-1 text-[10px] md:text-xs font-medium opacity-70 bg-white/50 px-2 py-1 rounded-full">
+                <Clock size={10} className="md:w-3 md:h-3" />
                 {formatTime(table.startTime)}
               </div>
             )}
 
-            <div className="p-4 bg-white/40 rounded-full backdrop-blur-sm">
+            <div className="p-3 md:p-4 bg-white/40 rounded-full backdrop-blur-sm">
               {getStatusIcon(table.status)}
             </div>
             
             <div className="text-center">
-              <h3 className="font-bold text-lg">{table.name}</h3>
-              <p className="text-sm opacity-80">
+              <h3 className="font-bold text-base md:text-lg leading-tight">{table.name}</h3>
+              <p className="text-xs md:text-sm opacity-80 mt-1">
                 {table.status === TableStatus.FREE 
                   ? 'פנוי' 
                   : `${table.guests} אורחים`}
@@ -76,7 +81,7 @@ export const TableMap: React.FC<TableMapProps> = ({ tables, onTableSelect }) => 
             </div>
 
             {table.status === TableStatus.PAYMENT && (
-               <div className="absolute -bottom-3 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+               <div className="absolute -bottom-2 md:-bottom-3 bg-blue-600 text-white px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-bold shadow-lg whitespace-nowrap z-10">
                  מבקשים חשבון
                </div>
             )}
