@@ -116,7 +116,6 @@ const App: React.FC = () => {
             const demoTables = JSON.parse(JSON.stringify(INITIAL_TABLES));
             const menuItems = activeMenu.items;
 
-            // Helper to get item by name part
             const getI = (namePart: string, notes: string = '', urgent: boolean = false) => {
                 const item = menuItems.find(i => i.name.includes(namePart));
                 if (!item) return null;
@@ -128,13 +127,11 @@ const App: React.FC = () => {
                 };
             };
 
-            // 1. Table 2: Occupied (Just seated)
             demoTables[1].status = TableStatus.OCCUPIED;
             demoTables[1].guests = 2;
-            demoTables[1].startTime = new Date(); // Now
+            demoTables[1].startTime = new Date();
             demoTables[1].currentOrder = [getI('הפוך', 'חזק'), getI('תה צמחים')].filter(Boolean);
 
-            // 2. Table 3: Ordered (Green Timer - 5 mins)
             demoTables[2].status = TableStatus.ORDERED;
             demoTables[2].guests = 3;
             demoTables[2].startTime = new Date(Date.now() - 1000 * 60 * 5); 
@@ -144,7 +141,6 @@ const App: React.FC = () => {
                 getI('קולה זירו')
             ].filter(Boolean);
 
-            // 3. Table 4: Payment (Done eating)
             demoTables[3].status = TableStatus.PAYMENT;
             demoTables[3].guests = 4;
             demoTables[3].startTime = new Date(Date.now() - 1000 * 60 * 55);
@@ -152,19 +148,15 @@ const App: React.FC = () => {
                 getI('סלט יווני'), getI('טוסט קלאסי'), getI('פסטה'), getI('לימונדה'), getI('תפוזים')
             ].filter(Boolean);
 
-            // 4. Table 6: Ordered (Red Timer - Urgent! - 25 mins)
             demoTables[5].status = TableStatus.ORDERED;
             demoTables[5].guests = 2;
             demoTables[5].startTime = new Date(Date.now() - 1000 * 60 * 25); 
             demoTables[5].currentOrder = [
                 getI('רביולי', 'בלי פרמזן', true),
-                getI('פילה סלמון', '', true) // Note: Salmon might not be in updated constants, fallback safely handled
+                getI('פילה סלמון', '', true)
             ].filter(Boolean);
-            // Add fallback if salmon missing
             if (demoTables[5].currentOrder.length < 2) demoTables[5].currentOrder.push(getI('לזניה', '', true));
 
-
-            // 5. Table 7: Ordered (Yellow Timer - 15 mins)
             demoTables[6].status = TableStatus.ORDERED;
             demoTables[6].guests = 5;
             demoTables[6].startTime = new Date(Date.now() - 1000 * 60 * 15);
@@ -172,7 +164,6 @@ const App: React.FC = () => {
                 getI('כריך בלקני'), getI('כריך סביח'), getI('סלט קינואה'), getI('קולה'), getI('מים')
             ].filter(Boolean);
 
-            // 6. Table 9 (Bar): Occupied
             demoTables[8].status = TableStatus.OCCUPIED;
             demoTables[8].guests = 1;
             demoTables[8].startTime = new Date(Date.now() - 1000 * 60 * 10);
@@ -191,7 +182,6 @@ const App: React.FC = () => {
           'איפוס נתונים',
           'האם לאפס את כל הנתונים למצב התחלתי? כל השינויים יימחקו.',
           () => {
-            // INITIAL_TABLES are now clean (FREE), so this works
             setTables(JSON.parse(JSON.stringify(INITIAL_TABLES)));
             showToast('הנתונים אופסו בהצלחה');
           },
@@ -463,18 +453,23 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 flex-col md:flex-row">
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 flex-col md:flex-row overflow-hidden">
       <NetworkStatus />
-      <Sidebar 
-        activeView={activeView} 
-        setView={setActiveView} 
-        openChecklist={fetchChecklist}
-        onOpenAdmin={() => setShowAdminLogin(true)}
-        isAdmin={isAdmin}
-        onLogout={() => { setIsAdmin(false); setActiveView('floorplan'); }}
-      />
+      
+      {/* Sidebar - Fixed Bottom on Mobile */}
+      <div className="order-2 md:order-1 w-full md:w-auto z-50">
+        <Sidebar 
+            activeView={activeView} 
+            setView={setActiveView} 
+            openChecklist={fetchChecklist}
+            onOpenAdmin={() => setShowAdminLogin(true)}
+            isAdmin={isAdmin}
+            onLogout={() => { setIsAdmin(false); setActiveView('floorplan'); }}
+        />
+      </div>
 
-      <main className="flex-1 relative overflow-hidden h-full md:mt-0 mt-10"> {/* Changed mt-8 to mt-10 */}
+      {/* Main Content */}
+      <main className="flex-1 relative overflow-hidden h-full order-1 md:order-2 bg-slate-50 pt-10 md:pt-0 pb-16 md:pb-0">
         {activeView === 'floorplan' && (
           <TableMap tables={tables} onTableSelect={handleTableSelect} />
         )}
