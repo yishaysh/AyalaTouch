@@ -20,7 +20,6 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState('floorplan');
   
   // --- SWITCH TO FIREBASE SYNC ---
-  // Using unique paths for this deployment to avoid conflicts if you reuse the DB
   const [tables, setTables] = useFirebaseSync<Table[]>('restaurants/ayala/tables', INITIAL_TABLES);
   const [menus, setMenus] = useFirebaseSync<Menu[]>('restaurants/ayala/menus', INITIAL_MENUS);
   
@@ -61,10 +60,12 @@ const App: React.FC = () => {
   const [checklistContent, setChecklistContent] = useState("");
   const [loadingChecklist, setLoadingChecklist] = useState(false);
 
-  const activeMenu = menus.find(m => m.isActive) || menus[0];
+  // --- SAFETY GUARDS (Critical for Production) ---
+  // Ensure we always have arrays to work with, preventing ReferenceError/TypeError
+  const safeTables = Array.isArray(tables) ? tables : INITIAL_TABLES;
+  const safeMenus = Array.isArray(menus) ? menus : INITIAL_MENUS;
 
-  // ... (Rest of the App logic remains identical, using setTables/setMenus which now sync to cloud) ...
-  // I'm copying the existing logic exactly, just ensuring it uses the new state setters
+  const activeMenu = safeMenus.find(m => m.isActive) || safeMenus[0];
 
   const showToast = (message: string, type: ToastType = 'success') => {
     setToast({ isVisible: true, message, type });
@@ -90,7 +91,7 @@ const App: React.FC = () => {
           'האם להפעיל מצב הדגמה? פעולה זו תדרוס את הנתונים בענן.',
           () => {
             const demoTables = JSON.parse(JSON.stringify(INITIAL_TABLES));
-            const menuItems = activeMenu.items;
+            const menuItems = activeMenu?.items || []; // Safe access
 
             const getI = (namePart: string, notes: string = '', urgent: boolean = false) => {
                 const item = menuItems.find(i => i.name.includes(namePart));
@@ -103,7 +104,7 @@ const App: React.FC = () => {
                 };
             };
 
-            // Populate demo data (same logic as before)
+            // Populate demo data
             demoTables[1].status = TableStatus.OCCUPIED;
             demoTables[1].guests = 2;
             demoTables[1].startTime = new Date();
@@ -158,29 +159,37 @@ const App: React.FC = () => {
   // --- Handlers ---
   const handleTableSelect = (id: number) => { setSelectedTableId(id); };
   const handleUpdateOrder = (items: OrderItem[]) => {
-    // Note: setTables is now the firebase updater
-    setTables((prev: Table[]) => prev.map(t => t.id === selectedTableId ? { ...t, currentOrder: items, status: items.length > 0 ? TableStatus.OCCUPIED : TableStatus.FREE } : t));
+    // Uses setter callback to ensure we work with latest state
+    setTables((prev: Table[]) => {
+        const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+        return current.map(t => t.id === selectedTableId ? { ...t, currentOrder: items, status: items.length > 0 ? TableStatus.OCCUPIED : TableStatus.FREE } : t);
+    });
   };
   const handleUpdateGuests = (guests: number) => {
     if (selectedTableId === null) return;
-    setTables((prev: Table[]) => prev.map(t => t.id === selectedTableId ? { ...t, guests } : t));
+    setTables((prev: Table[]) => {
+        const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+        return current.map(t => t.id === selectedTableId ? { ...t, guests } : t);
+    });
   };
   const handleSendOrderTrigger = () => {
     if (selectedTableId === null) return;
-    // Use current state from tables (which might be updating)
-    // Best to find table again to be sure
-    const table = tables.find(t => t.id === selectedTableId);
+    // Always find from safeTables to ensure stability
+    const table = safeTables.find(t => t.id === selectedTableId);
     if (!table) return;
     const html = generateKitchenTicketHTML(table, table.currentOrder);
     setPrintModal({ isOpen: true, title: 'הדפסת בון למטבח', htmlContent: html, onConfirm: () => {
-        setTables((prev: Table[]) => prev.map(t => t.id === selectedTableId ? { ...t, status: TableStatus.ORDERED, startTime: t.startTime || new Date() } : t));
+        setTables((prev: Table[]) => {
+            const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+            return current.map(t => t.id === selectedTableId ? { ...t, status: TableStatus.ORDERED, startTime: t.startTime || new Date() } : t);
+        });
         showToast('ההזמנה נשלחה למטבח');
         setSelectedTableId(null);
     }});
   };
   const handlePrintBillTrigger = () => {
     if (selectedTableId === null) return;
-    const table = tables.find(t => t.id === selectedTableId);
+    const table = safeTables.find(t => t.id === selectedTableId);
     if (!table) return;
     const html = generateBillHTML(table);
     setPrintModal({ isOpen: true, title: 'הדפסת חשבון', htmlContent: html, onConfirm: () => { showToast('חשבון הודפס'); } });
@@ -188,7 +197,10 @@ const App: React.FC = () => {
   const handleRequestBillTrigger = () => {
       requestConfirmation('בקשת חשבון', 'האם לסמן שולחן זה כמבקש חשבון?', () => {
         if (selectedTableId === null) return;
-        setTables((prev: Table[]) => prev.map(t => t.id === selectedTableId ? { ...t, status: TableStatus.PAYMENT } : t));
+        setTables((prev: Table[]) => {
+            const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+            return current.map(t => t.id === selectedTableId ? { ...t, status: TableStatus.PAYMENT } : t);
+        });
         showToast('סטטוס השולחן עודכן');
         setSelectedTableId(null);
       }, false);
@@ -196,17 +208,20 @@ const App: React.FC = () => {
   const handleCloseTableTrigger = () => {
     requestConfirmation('סגירת חשבון', 'האם לסגור את השולחן ולבצע צ׳ק אאוט?', () => {
         if (selectedTableId === null) return;
-        setTables((prev: Table[]) => prev.map(t => {
-        if (t.id === selectedTableId) {
-            const newHistory = [...(t.orderHistory || [])];
-            if (t.currentOrder.length > 0) {
-                const pastOrder: PastOrder = { id: `hist_${Date.now()}`, items: [...t.currentOrder], total: t.currentOrder.reduce((acc, i) => acc + i.price, 0), date: new Date() };
-                newHistory.unshift(pastOrder);
-            }
-            return { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined, orderHistory: newHistory };
-        }
-        return t;
-        }));
+        setTables((prev: Table[]) => {
+            const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+            return current.map(t => {
+                if (t.id === selectedTableId) {
+                    const newHistory = [...(t.orderHistory || [])];
+                    if (t.currentOrder.length > 0) {
+                        const pastOrder: PastOrder = { id: `hist_${Date.now()}`, items: [...t.currentOrder], total: t.currentOrder.reduce((acc, i) => acc + i.price, 0), date: new Date() };
+                        newHistory.unshift(pastOrder);
+                    }
+                    return { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined, orderHistory: newHistory };
+                }
+                return t;
+            });
+        });
         setSelectedTableId(null);
         showToast('החשבון נסגר בהצלחה');
     }, false);
@@ -214,21 +229,27 @@ const App: React.FC = () => {
   const handleResetTableTrigger = () => {
     requestConfirmation('איפוס שולחן', 'פעולה זו תמחק את ההזמנה הנוכחית ללא שמירה. האם להמשיך?', () => {
         if (selectedTableId === null) return;
-        setTables((prev: Table[]) => prev.map(t => t.id === selectedTableId ? { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined } : t));
+        setTables((prev: Table[]) => {
+            const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+            return current.map(t => t.id === selectedTableId ? { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined } : t);
+        });
         setSelectedTableId(null);
         showToast('השולחן אופס בהצלחה', 'error');
     }, true);
   };
   const handleEndShiftTrigger = () => {
       requestConfirmation('סיום משמרת', 'פעולה זו תאפס את כל השולחנות הפעילים. האם להמשיך?', () => {
-        setTables((prev: Table[]) => prev.map(t => {
-            const newHistory = [...(t.orderHistory || [])];
-            if (t.currentOrder.length > 0) {
-                const pastOrder: PastOrder = { id: `hist_shift_${Date.now()}`, items: [...t.currentOrder], total: t.currentOrder.reduce((acc, i) => acc + i.price, 0), date: new Date() };
-                newHistory.unshift(pastOrder);
-            }
-            return { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined, orderHistory: newHistory };
-        }));
+        setTables((prev: Table[]) => {
+            const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+            return current.map(t => {
+                const newHistory = [...(t.orderHistory || [])];
+                if (t.currentOrder.length > 0) {
+                    const pastOrder: PastOrder = { id: `hist_shift_${Date.now()}`, items: [...t.currentOrder], total: t.currentOrder.reduce((acc, i) => acc + i.price, 0), date: new Date() };
+                    newHistory.unshift(pastOrder);
+                }
+                return { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined, orderHistory: newHistory };
+            });
+        });
         showToast('משמרת הסתיימה בהצלחה');
       }, true);
   };
@@ -239,11 +260,14 @@ const App: React.FC = () => {
   const getElapsedMinutes = (startTime?: Date) => { if (!startTime) return 0; return Math.floor((new Date().getTime() - new Date(startTime).getTime()) / 60000); };
   const getTimerColor = (minutes: number) => { if (minutes > 20) return 'bg-red-100 border-red-300 text-red-800 animate-pulse'; if (minutes > 10) return 'bg-yellow-100 border-yellow-300 text-yellow-800'; return 'bg-white border-primary'; };
 
+  // Use safeTables for finding specific table to prevent crash
+  const selectedTable = safeTables.find(t => t.id === selectedTableId);
+
   // Render Kitchen View
   const renderKitchen = () => (
      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-        {tables.filter(t => t.status === TableStatus.ORDERED).length === 0 && <p className="text-gray-500 text-lg">אין הזמנות ממתינות במטבח כרגע.</p>}
-        {tables.filter(t => t.status === TableStatus.ORDERED).map(t => {
+        {safeTables.filter(t => t.status === TableStatus.ORDERED).length === 0 && <p className="text-gray-500 text-lg">אין הזמנות ממתינות במטבח כרגע.</p>}
+        {safeTables.filter(t => t.status === TableStatus.ORDERED).map(t => {
             const elapsed = getElapsedMinutes(t.startTime);
             return (
             <div key={t.id} className={`border-l-4 rounded-xl shadow-sm p-4 ${getTimerColor(elapsed)}`}>
@@ -259,7 +283,10 @@ const App: React.FC = () => {
                         </li>
                     ))}
                 </ul>
-                <button onClick={() => { setTables((prev: Table[]) => prev.map(table => table.id === t.id ? {...table, status: TableStatus.PAYMENT} : table)); showToast(`שולחן ${t.name} סומן כמוכן`); }} className="w-full py-2 bg-white/50 hover:bg-emerald-100 hover:text-emerald-700 border border-transparent hover:border-emerald-200 rounded-lg font-bold text-sm transition-colors flex justify-center items-center gap-2">
+                <button onClick={() => { setTables((prev: Table[]) => {
+                    const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+                    return current.map(table => table.id === t.id ? {...table, status: TableStatus.PAYMENT} : table);
+                }); showToast(`שולחן ${t.name} סומן כמוכן`); }} className="w-full py-2 bg-white/50 hover:bg-emerald-100 hover:text-emerald-700 border border-transparent hover:border-emerald-200 rounded-lg font-bold text-sm transition-colors flex justify-center items-center gap-2">
                     <CheckCircle size={16} /> סמן כמוכן
                 </button>
             </div>
@@ -282,10 +309,10 @@ const App: React.FC = () => {
       </div>
       <main className="flex-1 h-full relative order-1 md:order-2 bg-slate-50 overflow-y-auto overflow-x-hidden">
         <div className="min-h-full pb-24 md:pb-6 pt-10 md:pt-0">
-            {activeView === 'floorplan' && <TableMap tables={tables} onTableSelect={handleTableSelect} />}
+            {activeView === 'floorplan' && <TableMap tables={safeTables} onTableSelect={handleTableSelect} />}
             {activeView === 'kitchen' && (<div><div className="p-6 pb-0"><h2 className="text-2xl md:text-3xl font-bold text-secondary flex items-center gap-3"><ChefHat /> מסך מטבח</h2></div>{renderKitchen()}</div>)}
-            {activeView === 'menu_editor' && isAdmin && <MenuEditor menus={menus} setMenus={setMenus} />}
-            {activeView === 'admin_dashboard' && isAdmin && <AdminDashboard tables={tables} onEndShift={handleEndShiftTrigger} onRunSimulation={handleRunSimulation} onResetData={handleResetData} />}
+            {activeView === 'menu_editor' && isAdmin && <MenuEditor menus={safeMenus} setMenus={setMenus} />}
+            {activeView === 'admin_dashboard' && isAdmin && <AdminDashboard tables={safeTables} onEndShift={handleEndShiftTrigger} onRunSimulation={handleRunSimulation} onResetData={handleResetData} />}
         </div>
         {selectedTable && <OrderInterface table={selectedTable} menuItems={activeMenu.items} categories={activeMenu.categories} onClose={() => setSelectedTableId(null)} onUpdateOrder={handleUpdateOrder} onUpdateGuests={handleUpdateGuests} onSendOrder={handleSendOrderTrigger} onRequestBill={handleRequestBillTrigger} onPrintBill={handlePrintBillTrigger} onCloseTable={handleCloseTableTrigger} onResetTable={handleResetTableTrigger} />}
         {showAdminLogin && <div className="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in"><button onClick={() => { setShowAdminLogin(false); setLoginError(false); }} className="absolute top-4 left-4 text-gray-400 hover:text-gray-600"><X /></button><div className="flex flex-col items-center mb-6"><div className="bg-gray-100 p-4 rounded-full mb-4"><Lock size={32} className="text-secondary" /></div><h2 className="text-2xl font-bold text-secondary">כניסת מנהל</h2><p className="text-gray-500">הזן קוד גישה לניהול (1234)</p></div><form onSubmit={handleAdminLogin} className="space-y-4"><input type="password" inputMode="numeric" pattern="[0-9]*" maxLength={4} className="w-full text-center text-4xl tracking-[1em] font-bold p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary outline-none" value={adminPin} onChange={(e) => setAdminPin(e.target.value)} autoFocus />{loginError && <p className="text-red-500 text-center font-bold">קוד שגוי, נסה שנית</p>}<button type="submit" className="w-full bg-secondary text-white py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition-colors">כנס למערכת</button></form></div></div>}
