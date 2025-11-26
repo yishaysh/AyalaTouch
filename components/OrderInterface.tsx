@@ -390,7 +390,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
   // --- UI Components ---
 
   const renderHistory = () => (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 pb-24 md:pb-6">
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 pb-32 md:pb-6">
       <h3 className="text-xl font-bold mb-6 text-secondary flex items-center gap-2">
         <History /> היסטוריית הזמנות
       </h3>
@@ -558,7 +558,8 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 bg-slate-50 z-50 flex flex-col md:flex-row h-full animate-in slide-in-from-bottom-5 duration-300">
+    // Updated z-index to [60] to overlay the main app layout (which has Sidebar at z-50)
+    <div className="fixed inset-0 bg-slate-50 z-[60] flex flex-col md:flex-row h-full animate-in slide-in-from-bottom-5 duration-300">
       
       {/* --- Main Area (Menu/History) --- */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -643,7 +644,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
             )}
 
             {/* Menu Grid */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 pb-24 md:pb-6">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 pb-32 md:pb-6">
                <div className="max-w-5xl mx-auto">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 content-start">
                     {filteredItems.length === 0 ? (
@@ -694,7 +695,8 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
             </div>
             
             {/* Mobile: Floating Cart Summary Button */}
-            <div className="md:hidden absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent pt-10 pb-safe z-20">
+            {/* Added solid white background and border for clarity */}
+            <div className="md:hidden absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 pt-4 pb-safe z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                 <button 
                     onClick={() => setShowMobileCart(true)}
                     className="w-full bg-secondary text-white py-3 px-6 rounded-xl shadow-xl flex items-center justify-between font-bold animate-in slide-in-from-bottom-5"
@@ -720,7 +722,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-            md:relative md:w-[400px] md:translate-y-0 md:flex md:flex-col md:border-r md:border-gray-200 bg-white shadow-2xl z-40
+            md:relative md:w-[400px] md:translate-y-0 md:flex md:flex-col md:border-r md:border-gray-200 bg-white shadow-2xl z-[80]
             fixed inset-0 flex flex-col transition-transform duration-300 ease-in-out
             ${showMobileCart ? 'translate-y-0' : 'translate-y-full'}
             md:h-full
@@ -730,8 +732,8 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
 
       {/* Item Customization Modal */}
       {customizingItem && (
-          <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200">
-              <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+          <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200">
+              <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[70dvh]"> {/* Reduced max-h for mobile safety */}
                   <div className="p-4 bg-secondary text-white flex justify-between items-center shrink-0">
                       <h3 className="font-bold text-lg">{customizingItem.name}</h3>
                       <button onClick={() => setCustomizingItem(null)} className="p-1 hover:bg-white/20 rounded-full"><X size={20}/></button>
@@ -787,7 +789,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
 
       {/* Note Editor Modal */}
       {editingNoteItem && (
-          <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-2xl">
                   <h3 className="font-bold text-lg mb-4 text-gray-800">עריכת הערות: {editingNoteItem.name}</h3>
                   <textarea 
