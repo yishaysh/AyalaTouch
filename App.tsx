@@ -60,8 +60,7 @@ const App: React.FC = () => {
   const [checklistContent, setChecklistContent] = useState("");
   const [loadingChecklist, setLoadingChecklist] = useState(false);
 
-  // --- SAFETY GUARDS (Critical for Production) ---
-  // Ensure we always have arrays to work with, preventing ReferenceError/TypeError
+  // --- SAFETY GUARDS ---
   const safeTables = Array.isArray(tables) ? tables : INITIAL_TABLES;
   const safeMenus = Array.isArray(menus) ? menus : INITIAL_MENUS;
 
@@ -91,7 +90,7 @@ const App: React.FC = () => {
           'האם להפעיל מצב הדגמה? פעולה זו תדרוס את הנתונים בענן.',
           () => {
             const demoTables = JSON.parse(JSON.stringify(INITIAL_TABLES));
-            const menuItems = activeMenu?.items || []; // Safe access
+            const menuItems = activeMenu?.items || []; 
 
             const getI = (namePart: string, notes: string = '', urgent: boolean = false) => {
                 const item = menuItems.find(i => i.name.includes(namePart));
@@ -104,7 +103,6 @@ const App: React.FC = () => {
                 };
             };
 
-            // Populate demo data
             demoTables[1].status = TableStatus.OCCUPIED;
             demoTables[1].guests = 2;
             demoTables[1].startTime = new Date();
@@ -158,13 +156,14 @@ const App: React.FC = () => {
 
   // --- Handlers ---
   const handleTableSelect = (id: number) => { setSelectedTableId(id); };
+  
   const handleUpdateOrder = (items: OrderItem[]) => {
-    // Uses setter callback to ensure we work with latest state
     setTables((prev: Table[]) => {
         const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
         return current.map(t => t.id === selectedTableId ? { ...t, currentOrder: items, status: items.length > 0 ? TableStatus.OCCUPIED : TableStatus.FREE } : t);
     });
   };
+  
   const handleUpdateGuests = (guests: number) => {
     if (selectedTableId === null) return;
     setTables((prev: Table[]) => {
@@ -172,12 +171,12 @@ const App: React.FC = () => {
         return current.map(t => t.id === selectedTableId ? { ...t, guests } : t);
     });
   };
+  
   const handleSendOrderTrigger = () => {
     if (selectedTableId === null) return;
-    // Always find from safeTables to ensure stability
     const table = safeTables.find(t => t.id === selectedTableId);
     if (!table) return;
-    const html = generateKitchenTicketHTML(table, table.currentOrder);
+    const html = generateKitchenTicketHTML(table, table.currentOrder || []);
     setPrintModal({ isOpen: true, title: 'הדפסת בון למטבח', htmlContent: html, onConfirm: () => {
         setTables((prev: Table[]) => {
             const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
@@ -187,6 +186,7 @@ const App: React.FC = () => {
         setSelectedTableId(null);
     }});
   };
+  
   const handlePrintBillTrigger = () => {
     if (selectedTableId === null) return;
     const table = safeTables.find(t => t.id === selectedTableId);
@@ -194,6 +194,7 @@ const App: React.FC = () => {
     const html = generateBillHTML(table);
     setPrintModal({ isOpen: true, title: 'הדפסת חשבון', htmlContent: html, onConfirm: () => { showToast('חשבון הודפס'); } });
   };
+  
   const handleRequestBillTrigger = () => {
       requestConfirmation('בקשת חשבון', 'האם לסמן שולחן זה כמבקש חשבון?', () => {
         if (selectedTableId === null) return;
@@ -205,6 +206,7 @@ const App: React.FC = () => {
         setSelectedTableId(null);
       }, false);
   };
+  
   const handleCloseTableTrigger = () => {
     requestConfirmation('סגירת חשבון', 'האם לסגור את השולחן ולבצע צ׳ק אאוט?', () => {
         if (selectedTableId === null) return;
@@ -213,8 +215,15 @@ const App: React.FC = () => {
             return current.map(t => {
                 if (t.id === selectedTableId) {
                     const newHistory = [...(t.orderHistory || [])];
-                    if (t.currentOrder.length > 0) {
-                        const pastOrder: PastOrder = { id: `hist_${Date.now()}`, items: [...t.currentOrder], total: t.currentOrder.reduce((acc, i) => acc + i.price, 0), date: new Date() };
+                    const currentItems = t.currentOrder || [];
+                    
+                    if (currentItems.length > 0) {
+                        const pastOrder: PastOrder = { 
+                            id: `hist_${Date.now()}`, 
+                            items: [...currentItems], 
+                            total: currentItems.reduce((acc, i) => acc + i.price, 0), 
+                            date: new Date() 
+                        };
                         newHistory.unshift(pastOrder);
                     }
                     return { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined, orderHistory: newHistory };
@@ -226,6 +235,7 @@ const App: React.FC = () => {
         showToast('החשבון נסגר בהצלחה');
     }, false);
   };
+  
   const handleResetTableTrigger = () => {
     requestConfirmation('איפוס שולחן', 'פעולה זו תמחק את ההזמנה הנוכחית ללא שמירה. האם להמשיך?', () => {
         if (selectedTableId === null) return;
@@ -237,14 +247,22 @@ const App: React.FC = () => {
         showToast('השולחן אופס בהצלחה', 'error');
     }, true);
   };
+  
   const handleEndShiftTrigger = () => {
       requestConfirmation('סיום משמרת', 'פעולה זו תאפס את כל השולחנות הפעילים. האם להמשיך?', () => {
         setTables((prev: Table[]) => {
             const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
             return current.map(t => {
                 const newHistory = [...(t.orderHistory || [])];
-                if (t.currentOrder.length > 0) {
-                    const pastOrder: PastOrder = { id: `hist_shift_${Date.now()}`, items: [...t.currentOrder], total: t.currentOrder.reduce((acc, i) => acc + i.price, 0), date: new Date() };
+                const currentItems = t.currentOrder || [];
+                
+                if (currentItems.length > 0) {
+                    const pastOrder: PastOrder = { 
+                        id: `hist_shift_${Date.now()}`, 
+                        items: [...currentItems], 
+                        total: currentItems.reduce((acc, i) => acc + i.price, 0), 
+                        date: new Date() 
+                    };
                     newHistory.unshift(pastOrder);
                 }
                 return { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined, orderHistory: newHistory };
@@ -253,6 +271,7 @@ const App: React.FC = () => {
         showToast('משמרת הסתיימה בהצלחה');
       }, true);
   };
+  
   const handleAdminLogin = (e: React.FormEvent) => { e.preventDefault(); if (adminPin === '1234') { setIsAdmin(true); setShowAdminLogin(false); setActiveView('admin_dashboard'); setAdminPin(''); setLoginError(false); } else { setLoginError(true); } };
   const fetchChecklist = async () => { setShowChecklist(true); if (!checklistContent) { setLoadingChecklist(true); const content = await getWaitStaffChecklist(); setChecklistContent(content); setLoadingChecklist(false); } }
 
@@ -276,7 +295,7 @@ const App: React.FC = () => {
                     <div className="flex items-center gap-2"><Clock size={14} /><span className="font-mono text-sm font-bold">{elapsed} דק'</span></div>
                 </div>
                 <ul className="space-y-2 mb-4">
-                    {t.currentOrder.map(item => (
+                    {(t.currentOrder || []).map(item => (
                         <li key={item.uniqueId} className={`flex justify-between items-center text-sm p-2 rounded ${item.isUrgent ? 'bg-red-200 text-red-900 font-bold' : ''}`}>
                             <span>{item.name} {item.isUrgent && <span className="mr-2 text-xs bg-red-600 text-white px-1 rounded">דחוף</span>}</span>
                             {item.notes && <span className="text-xs text-gray-600 bg-white/50 px-1 rounded">{item.notes}</span>}
