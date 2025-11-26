@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, MenuItem, OrderItem } from '../types';
 import { ArrowRight, Plus, Minus, Trash2, Send, Receipt, CheckSquare, RefreshCw, Users, Edit2, History, Clock, ChevronDown, Check, X, Search, Flame, ArrowDownToLine, Printer } from 'lucide-react';
 import { AIAssistant } from './AIAssistant';
-import { printOrderToKitchen, printBill } from '../services/printerService';
+// Removed import of printOrderToKitchen, printBill as they are no longer exported/used here directly
 
 interface OrderInterfaceProps {
   table: Table;
@@ -18,7 +18,8 @@ interface OrderInterfaceProps {
   onResetTable: () => void;
 }
 
-// ... (Modifier logic remains unchanged) ...
+// --- Modifier Logic ---
+
 type ModifierOption = { label: string; id: string; price?: number };
 type ModifierGroup = { title: string; id: string; type: 'single' | 'multiple'; options: ModifierOption[] };
 
@@ -376,19 +377,14 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
     return currentOrder.reduce((sum, item) => sum + item.price, 0);
   };
 
-  const handleSendOrder = async () => {
+  const handleSendOrder = () => {
+      // Logic moved to App.tsx (onSendOrder prop)
       onSendOrder();
-      const success = await printOrderToKitchen(table, currentOrder);
-      if (success) {
-          console.log("Printed successfully");
-      }
   };
 
-  const handlePrintBill = async () => {
-      const success = await printBill(table);
-      if (success) {
-          console.log("Bill printed successfully");
-      }
+  const handlePrintBill = () => {
+      // Logic moved to App.tsx (onPrintBill prop)
+      onPrintBill();
   };
 
   // --- UI Components ---
