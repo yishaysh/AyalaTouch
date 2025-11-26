@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, MenuItem, OrderItem } from '../types';
 import { ArrowRight, Plus, Minus, Trash2, Send, Receipt, CheckSquare, RefreshCw, Users, Edit2, History, Clock, ChevronDown, Check, X, Search, Flame, ArrowDownToLine, Printer } from 'lucide-react';
 import { AIAssistant } from './AIAssistant';
+import { printOrderToKitchen, printBill } from '../services/printerService';
 
 interface OrderInterfaceProps {
   table: Table;
@@ -12,14 +13,12 @@ interface OrderInterfaceProps {
   onUpdateGuests: (guests: number) => void;
   onSendOrder: () => void;
   onRequestBill: () => void;
-  onPrintBill: () => void; // New prop
+  onPrintBill: () => void;
   onCloseTable: () => void;
   onResetTable: () => void;
 }
 
-// ... (Modifier logic remains the same, omitting for brevity but keeping it in the file)
-// Note: The full content of OrderInterface needs to be preserved, just updating props and button calls.
-
+// ... (Modifier logic remains unchanged) ...
 type ModifierOption = { label: string; id: string; price?: number };
 type ModifierGroup = { title: string; id: string; type: 'single' | 'multiple'; options: ModifierOption[] };
 
@@ -208,7 +207,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
   onUpdateGuests,
   onSendOrder,
   onRequestBill,
-  onPrintBill, // Prop used here
+  onPrintBill,
   onCloseTable,
   onResetTable
 }) => {
@@ -228,6 +227,11 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [selectedModifiers, setSelectedModifiers] = useState<Record<string, string[]>>({}); 
   const [customNote, setCustomNote] = useState('');
+
+  // --- SAFE ACCESSORS ---
+  const currentOrder = table?.currentOrder || [];
+  const orderHistory = table?.orderHistory || [];
+  const guestCount = table?.guests || 0;
 
   // Set initial category when categories load
   useEffect(() => {
@@ -335,17 +339,17 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
         notes: notes,
         isUrgent: false
     };
-    onUpdateOrder([...table.currentOrder, newItem]);
+    onUpdateOrder([...currentOrder, newItem]);
   };
 
   const toggleUrgent = (uniqueId: string) => {
-      onUpdateOrder(table.currentOrder.map(item => 
+      onUpdateOrder(currentOrder.map(item => 
         item.uniqueId === uniqueId ? { ...item, isUrgent: !item.isUrgent } : item
       ));
   };
 
   const removeItem = (uniqueId: string) => {
-    onUpdateOrder(table.currentOrder.filter(i => i.uniqueId !== uniqueId));
+    onUpdateOrder(currentOrder.filter(i => i.uniqueId !== uniqueId));
   };
 
   const openNoteModal = (item: OrderItem) => {
@@ -355,7 +359,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
 
   const saveNote = () => {
       if (!editingNoteItem) return;
-      const updatedOrder = table.currentOrder.map(item => 
+      const updatedOrder = currentOrder.map(item => 
         item.uniqueId === editingNoteItem.uniqueId ? { ...item, notes: noteText } : item
       );
       onUpdateOrder(updatedOrder);
@@ -364,12 +368,27 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
   };
 
   const updateGuests = (delta: number) => {
-      const newCount = Math.max(1, (table.guests || 0) + delta);
+      const newCount = Math.max(1, (guestCount || 0) + delta);
       onUpdateGuests(newCount);
   };
 
   const calculateTotal = () => {
-    return table.currentOrder.reduce((sum, item) => sum + item.price, 0);
+    return currentOrder.reduce((sum, item) => sum + item.price, 0);
+  };
+
+  const handleSendOrder = async () => {
+      onSendOrder();
+      const success = await printOrderToKitchen(table, currentOrder);
+      if (success) {
+          console.log("Printed successfully");
+      }
+  };
+
+  const handlePrintBill = async () => {
+      const success = await printBill(table);
+      if (success) {
+          console.log("Bill printed successfully");
+      }
   };
 
   // --- UI Components ---
@@ -379,14 +398,14 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
       <h3 className="text-xl font-bold mb-6 text-secondary flex items-center gap-2">
         <History /> היסטוריית הזמנות
       </h3>
-      {table.orderHistory.length === 0 ? (
+      {orderHistory.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10 text-gray-400">
           <History size={48} className="mb-4 opacity-30" />
           <p>אין הזמנות קודמות לשולחן זה</p>
         </div>
       ) : (
         <div className="space-y-4 max-w-3xl mx-auto">
-          {table.orderHistory.map(order => (
+          {orderHistory.map(order => (
             <div key={order.id} className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-center border-b pb-3 mb-3">
                  <div className="flex items-center gap-2 text-gray-500 text-sm font-mono">
@@ -423,7 +442,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
                <span>סיכום הזמנה</span>
            </div>
            <span className="bg-white/20 backdrop-blur-md text-white text-xs px-3 py-1 rounded-full font-mono">
-               {table.currentOrder.length} פריטים
+               {currentOrder.length} פריטים
            </span>
            <button onClick={() => setShowMobileCart(false)} className="md:hidden p-1 hover:bg-white/20 rounded-full">
                <ChevronDown />
@@ -439,7 +458,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
               </div>
           )}
 
-          {table.currentOrder.length === 0 ? (
+          {currentOrder.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-4 opacity-60">
               <div className="w-20 h-20 border-4 border-dashed border-gray-300 rounded-full flex items-center justify-center bg-white">
                   <Plus size={32} />
@@ -448,7 +467,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
               <p className="text-xs">לחץ או גרור פריטים לכאן</p>
             </div>
           ) : (
-            table.currentOrder.map((item, idx) => (
+            currentOrder.map((item, idx) => (
               <div key={item.uniqueId} className={`bg-white p-3 rounded-xl border shadow-sm animate-in slide-in-from-right-8 duration-300 ${item.isUrgent ? 'border-red-200 ring-1 ring-red-100' : 'border-gray-100'}`} style={{animationDelay: `${idx * 50}ms`}}>
                 <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
@@ -496,16 +515,16 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
           
           <div className="flex gap-2">
             <button 
-                    onClick={onSendOrder}
-                    disabled={table.currentOrder.length === 0}
+                    onClick={handleSendOrder}
+                    disabled={currentOrder.length === 0}
                     className="flex-1 bg-primary text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     <Send size={20} />
                     <span>שלח למטבח</span>
             </button>
             <button
-                onClick={onPrintBill}
-                disabled={table.currentOrder.length === 0}
+                onClick={handlePrintBill}
+                disabled={currentOrder.length === 0}
                 className="bg-gray-100 text-gray-700 px-4 py-3 rounded-xl font-bold hover:bg-gray-200 border border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 title="הדפס חשבון"
             >
@@ -554,11 +573,11 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
                 <ArrowRight />
             </button>
             <div>
-                <h2 className="text-lg md:text-2xl font-bold text-secondary">{table.name}</h2>
+                <h2 className="text-lg md:text-2xl font-bold text-secondary">{table?.name}</h2>
                 <div className="text-sm text-gray-500 flex items-center gap-3 mt-1">
                     <div className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded-lg">
                         <Users size={14} />
-                        <span>{table.guests}</span>
+                        <span>{guestCount}</span>
                         <div className="flex gap-1 mr-2 border-r border-gray-300 pr-2">
                             <button onClick={() => updateGuests(1)} className="hover:text-primary font-bold px-1"><Plus size={14} /></button>
                             <button onClick={() => updateGuests(-1)} className="hover:text-primary font-bold px-1"><Minus size={14} /></button>
@@ -686,7 +705,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
                 >
                     <div className="flex items-center gap-2">
                         <div className="bg-primary text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
-                            {table.currentOrder.length}
+                            {currentOrder.length}
                         </div>
                         <span>צפה בעגלה</span>
                     </div>
@@ -794,7 +813,7 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
       {/* AI Integration */}
       {!showMobileCart && (
         <AIAssistant 
-            currentOrder={table.currentOrder} 
+            currentOrder={currentOrder} 
             allItems={menuItems} 
             onAddItem={addToOrder} 
         />

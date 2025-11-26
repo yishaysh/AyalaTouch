@@ -10,18 +10,24 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tables, onEndShift, onRunSimulation, onResetData }) => {
+  // SAFE ACCESS: Ensure tables is an array before reducing
+  const safeTables = Array.isArray(tables) ? tables : [];
+
   // Calculate Stats
-  const occupiedTables = tables.filter(t => t.status !== TableStatus.FREE).length;
-  const totalGuests = tables.reduce((sum, t) => sum + (t.guests || 0), 0);
+  const occupiedTables = safeTables.filter(t => t.status !== TableStatus.FREE).length;
+  
+  const totalGuests = safeTables.reduce((sum, t) => sum + (t.guests || 0), 0);
   
   // Calculate estimated revenue from current active tables
-  const currentRevenue = tables.reduce((sum, t) => {
-    return sum + t.currentOrder.reduce((orderSum, item) => orderSum + item.price, 0);
+  const currentRevenue = safeTables.reduce((sum, t) => {
+    const orderTotal = (t.currentOrder || []).reduce((orderSum, item) => orderSum + (item.price || 0), 0);
+    return sum + orderTotal;
   }, 0);
 
   // Sum history
-  const historicalRevenue = tables.reduce((sum, t) => {
-     const historySum = t.orderHistory?.reduce((hSum, order) => hSum + order.total, 0) || 0;
+  const historicalRevenue = safeTables.reduce((sum, t) => {
+     // Guard against missing orderHistory
+     const historySum = (t.orderHistory || []).reduce((hSum, order) => hSum + (order.total || 0), 0);
      return sum + historySum;
   }, 0);
 
@@ -57,7 +63,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tables, onEndShi
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
            <div>
               <div className="text-sm text-gray-500 font-medium mb-1">שולחנות פעילים</div>
-              <div className="text-3xl font-bold text-blue-600">{occupiedTables} <span className="text-lg text-gray-400 font-normal">/ {tables.length}</span></div>
+              <div className="text-3xl font-bold text-blue-600">{occupiedTables} <span className="text-lg text-gray-400 font-normal">/ {safeTables.length}</span></div>
            </div>
            <div className="bg-blue-100 p-3 rounded-xl text-blue-600">
               <Users size={24} />
@@ -77,7 +83,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tables, onEndShi
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
            <div>
               <div className="text-sm text-gray-500 font-medium mb-1">הזמנות פתוחות</div>
-              <div className="text-3xl font-bold text-purple-600">{tables.filter(t => t.currentOrder.length > 0).length}</div>
+              <div className="text-3xl font-bold text-purple-600">{safeTables.filter(t => (t.currentOrder || []).length > 0).length}</div>
            </div>
            <div className="bg-purple-100 p-3 rounded-xl text-purple-600">
               <Clock size={24} />
@@ -148,13 +154,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tables, onEndShi
             התראות מערכת
         </h3>
         <ul className="space-y-4 relative z-10">
-            {tables.filter(t => t.status === TableStatus.PAYMENT).map(t => (
+            {safeTables.filter(t => t.status === TableStatus.PAYMENT).map(t => (
                 <li key={t.id} className="flex items-center justify-between bg-white/10 p-3 rounded-lg backdrop-blur-sm border border-white/10">
                     <span>{t.name} מבקש חשבון</span>
                     <span className="text-xs bg-blue-500 px-2 py-1 rounded">לטיפול</span>
                 </li>
             ))}
-            {tables.filter(t => t.status === TableStatus.PAYMENT).length === 0 && (
+            {safeTables.filter(t => t.status === TableStatus.PAYMENT).length === 0 && (
                 <p className="text-slate-400 italic">אין התראות חדשות כרגע...</p>
             )}
         </ul>
