@@ -5,6 +5,31 @@ import { database } from '../firebaseConfig';
 // Define the setter type to match React's setState behavior
 type SetValue<T> = (value: T | ((prev: T) => T)) => void;
 
+// Helper to sanitize data for Firebase (replace undefined with null)
+const sanitizeForFirebase = (data: any): any => {
+  if (data === undefined) return null;
+  if (data === null) return null;
+  if (data instanceof Date) return data.toISOString(); // Store dates as ISO strings
+  if (Array.isArray(data)) {
+    return data.map(sanitizeForFirebase);
+  }
+  if (typeof data === 'object') {
+    const newObj: any = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        const val = sanitizeForFirebase(data[key]);
+        // Firebase doesn't like keys with undefined values, but null is fine or just omitting.
+        // However, if we want to explicitly clear a value, null is better.
+        if (val !== undefined) {
+             newObj[key] = val;
+        }
+      }
+    }
+    return newObj;
+  }
+  return data;
+};
+
 // A generic hook that syncs a state variable with a Firebase Realtime Database path
 export function useFirebaseSync<T>(path: string, initialValue: T): [T, SetValue<T>] {
   // Initialize with initialValue immediately so UI has something to show
@@ -28,8 +53,8 @@ export function useFirebaseSync<T>(path: string, initialValue: T): [T, SetValue<
         });
         setData(parsed);
       } else {
-        // If no data exists in DB yet, we keep the initialValue but ALSO write it to DB to init it there
-        set(dbRef, initialValue).catch(console.error); 
+        // If no data exists in DB yet, write sanitized initial value
+        set(dbRef, sanitizeForFirebase(initialValue)).catch(console.error); 
       }
     }, (error) => {
         console.error("Firebase read failed:", error);
@@ -43,10 +68,6 @@ export function useFirebaseSync<T>(path: string, initialValue: T): [T, SetValue<
     let valueToSave: T;
     
     if (typeof newValue === 'function') {
-        // Check if newValue is a function. 
-        // We use 'data' from the current closure. 
-        // Note: In very high frequency updates this might be slightly stale, 
-        // but for this app structure it works.
         // @ts-ignore
         valueToSave = newValue(data);
     } else {
@@ -56,10 +77,11 @@ export function useFirebaseSync<T>(path: string, initialValue: T): [T, SetValue<
     // Optimistic update
     setData(valueToSave);
 
-    // Write to Firebase
+    // Write to Firebase with sanitization
     if (database) {
         const dbRef = ref(database, path);
-        set(dbRef, valueToSave).catch((err) => {
+        const cleanData = sanitizeForFirebase(valueToSave);
+        set(dbRef, cleanData).catch((err) => {
             console.error("Firebase write failed:", err);
         });
     }
