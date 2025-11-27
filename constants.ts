@@ -1,4 +1,4 @@
-import { Menu, Table, TableStatus } from './types';
+import { Menu, Table, TableStatus, User } from './types';
 
 export const INITIAL_MENUS: Menu[] = [
   {
@@ -73,4 +73,10 @@ export const INITIAL_TABLES: Table[] = [
   { id: 8, name: 'בר 1', status: TableStatus.FREE, guests: 0, currentOrder: [], orderHistory: [] },
   { id: 9, name: 'בר 2', status: TableStatus.FREE, guests: 0, currentOrder: [], orderHistory: [] },
   { id: 10, name: 'ספה 1', status: TableStatus.FREE, guests: 0, currentOrder: [], orderHistory: [] },
+];
+
+export const INITIAL_USERS: User[] = [
+  { id: 'u1', name: 'מנהל ראשי', role: 'admin', pin: '1234', isActive: true },
+  { id: 'u2', name: 'מלצר 1', role: 'waiter', pin: '1111', isActive: true },
+  { id: 'u3', name: 'מלצר 2', role: 'waiter', pin: '2222', isActive: true },
 ];

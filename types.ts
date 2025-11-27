@@ -52,3 +52,14 @@ export interface AIRecommendation {
   itemIds: string[];
   reason: string;
 }
+
+// --- User Management Types ---
+export type UserRole = 'admin' | 'waiter';
+
+export interface User {
+  id: string;
+  name: string;
+  role: UserRole;
+  pin: string; // Simple PIN for quick access
+  isActive: boolean;
+}

@@ -1,16 +1,18 @@
 import React from 'react';
-import { LayoutGrid, Coffee, Settings, ListChecks, ChefHat, LogOut, LayoutDashboard } from 'lucide-react';
+import { LayoutGrid, Coffee, Settings, ListChecks, ChefHat, LogOut, LayoutDashboard, User as UserIcon } from 'lucide-react';
+import { User } from '../types';
 
 interface SidebarProps {
   activeView: string;
   setView: (view: string) => void;
   openChecklist: () => void;
-  onOpenAdmin: () => void;
-  isAdmin: boolean;
+  currentUser: User | null;
   onLogout: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openChecklist, onOpenAdmin, isAdmin, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openChecklist, currentUser, onLogout }) => {
+  const isAdmin = currentUser?.role === 'admin';
+
   const navItems = [
     { id: 'floorplan', icon: LayoutGrid, label: 'שולחנות' },
     { id: 'kitchen', icon: ChefHat, label: 'מטבח' },
@@ -21,17 +23,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openCheck
     ] : []),
   ];
 
-  const handleAdminClick = () => {
-    if (isAdmin) {
-      if (window.confirm('האם להתנתק ממערכת הניהול?')) {
+  const handleLogoutClick = () => {
+      if (window.confirm('האם להתנתק מהמערכת?')) {
         onLogout();
       }
-    } else {
-      onOpenAdmin();
-    }
   };
 
-  // Mobile Bottom Navigation - FIXED POSITION
+  // Mobile Bottom Navigation
   const MobileNav = () => (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-secondary text-white pb-safe pt-2 px-4 shadow-[0_-4px_20px_rgba(0,0,0,0.2)] z-50 flex justify-between items-center h-16 safe-area-bottom border-t border-slate-700">
       {navItems.map((item) => (
@@ -48,11 +46,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openCheck
       ))}
       
       <button
-        onClick={handleAdminClick}
-        className={`flex flex-col items-center justify-center w-full gap-1 ${isAdmin ? 'text-red-400' : 'text-slate-400'}`}
+        onClick={handleLogoutClick}
+        className="flex flex-col items-center justify-center w-full gap-1 text-red-400"
       >
-        {isAdmin ? <LogOut size={20} /> : <Settings size={20} />}
-        <span className="text-[10px] font-medium">{isAdmin ? 'יציאה' : 'הגדרות'}</span>
+        <LogOut size={20} />
+        <span className="text-[10px] font-medium">יציאה</span>
       </button>
     </div>
   );
@@ -68,7 +66,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openCheck
         </div>
       </div>
 
-      <nav className="flex-1 py-8 flex flex-col gap-2 px-3">
+      {/* User Info */}
+      <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700/50 flex items-center gap-3">
+          <div className="bg-slate-700 p-2 rounded-full">
+              <UserIcon size={16} className="text-gray-300" />
+          </div>
+          <div>
+              <div className="font-bold text-sm">{currentUser?.name}</div>
+              <div className="text-xs text-gray-400">{isAdmin ? 'מנהל מערכת' : 'מלצר'}</div>
+          </div>
+      </div>
+
+      <nav className="flex-1 py-6 flex flex-col gap-2 px-3">
         {navItems.map((item) => (
           <button
             key={item.id}
@@ -93,21 +102,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, openCheck
           <span className="text-sm">רשימת דרישות</span>
         </button>
         
-        {isAdmin ? (
-          <button 
-            onClick={onLogout}
+        <button 
+            onClick={handleLogoutClick}
             className="flex items-center gap-3 p-3 text-red-400 hover:text-white hover:bg-red-900/30 rounded-xl transition-colors">
             <LogOut size={20} />
-            <span className="text-sm">יציאה מניהול</span>
-          </button>
-        ) : (
-          <button 
-            onClick={onOpenAdmin}
-            className="flex items-center gap-3 p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors">
-            <Settings size={20} />
-            <span className="text-sm">כניסת מנהל</span>
-          </button>
-        )}
+            <span className="text-sm">יציאה מהמערכת</span>
+        </button>
       </div>
     </div>
   );
