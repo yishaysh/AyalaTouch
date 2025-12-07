@@ -8,7 +8,7 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { PrintModal } from './components/PrintModal';
 import { Toast, ToastType } from './components/Toast';
 import { NetworkStatus } from './components/NetworkStatus'; 
-import { LoginScreen } from './components/LoginScreen'; // Import Login Screen
+import { LoginScreen } from './components/LoginScreen';
 import { INITIAL_TABLES, INITIAL_MENUS, INITIAL_USERS } from './constants';
 import { Table, TableStatus, OrderItem, Menu, PastOrder, User } from './types';
 import { Loader2, CheckCircle, ChefHat, X, Lock, Clock } from 'lucide-react';
@@ -23,7 +23,7 @@ const App: React.FC = () => {
   const [users, setUsers] = useFirebaseSync<User[]>('restaurants/ayala/users', INITIAL_USERS);
 
   // --- LOCAL STATE ---
-  const [currentUser, setCurrentUser] = useState<User | null>(null); // Track logged in user
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeView, setActiveView] = useState('floorplan');
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const [, setTick] = useState(0);
@@ -79,15 +79,106 @@ const App: React.FC = () => {
     });
   };
 
-  // ... (Previous Handlers for Simulation, Reset, Tables, Orders - kept identical) ...
-  // Omitting repeated handler logic for brevity, assume it uses safeTables/setTables as before
+  // --- Simulation Handlers ---
+  const handleRunSimulation = () => {
+      requestConfirmation(
+          'הפעלת מצב הדגמה',
+          'האם להפעיל מצב הדגמה? פעולה זו תדרוס את הנתונים בענן.',
+          () => {
+            // Create a clean deep copy from INITIAL_TABLES to avoid mutating state directly or reference issues
+            const demoTables = JSON.parse(JSON.stringify(INITIAL_TABLES));
+            const menuItems = activeMenu?.items || []; 
 
-  // --- COPIED HANDLERS (Required for functionality) ---
-  const handleRunSimulation = () => { requestConfirmation('הפעלת מצב הדגמה', 'הפעולה תדרוס נתונים.', () => { setTables(JSON.parse(JSON.stringify(INITIAL_TABLES))); showToast('מצב הדגמה הופעל!'); }, true); }; // Simplified for brevity
-  const handleResetData = () => { requestConfirmation('איפוס נתונים', 'איפוס למצב התחלתי.', () => { setTables(JSON.parse(JSON.stringify(INITIAL_TABLES))); showToast('הנתונים אופסו'); }, true); };
+            const getI = (namePart: string, notes: string = '', urgent: boolean = false) => {
+                const item = menuItems.find(i => i.name.includes(namePart));
+                if (!item) return null;
+                return { 
+                    ...item, 
+                    uniqueId: Math.random().toString(36).substr(2, 9),
+                    notes,
+                    isUrgent: urgent
+                };
+            };
+
+            // Populate demo data explicitly by index (matching ID logic)
+            // Table 2 (Index 1)
+            demoTables[1].status = TableStatus.OCCUPIED;
+            demoTables[1].guests = 2;
+            demoTables[1].startTime = new Date();
+            demoTables[1].currentOrder = [getI('הפוך', 'חזק'), getI('תה צמחים')].filter(Boolean);
+
+            // Table 3 (Index 2)
+            demoTables[2].status = TableStatus.ORDERED;
+            demoTables[2].guests = 3;
+            demoTables[2].startTime = new Date(Date.now() - 1000 * 60 * 5); 
+            demoTables[2].currentOrder = [getI('בוקר יחיד', 'ביצת עין'), getI('שקשוקה'), getI('קולה זירו')].filter(Boolean);
+
+            // Table 4 (Index 3)
+            demoTables[3].status = TableStatus.PAYMENT;
+            demoTables[3].guests = 4;
+            demoTables[3].startTime = new Date(Date.now() - 1000 * 60 * 55);
+            demoTables[3].currentOrder = [getI('סלט יווני'), getI('טוסט קלאסי'), getI('פסטה'), getI('לימונדה'), getI('תפוזים')].filter(Boolean);
+
+            // Table 6 (Index 5)
+            demoTables[5].status = TableStatus.ORDERED;
+            demoTables[5].guests = 2;
+            demoTables[5].startTime = new Date(Date.now() - 1000 * 60 * 25); 
+            demoTables[5].currentOrder = [getI('רביולי', 'בלי פרמזן', true), getI('פילה סלמון', '', true)].filter(Boolean);
+            // Fallback if Salmon not found
+            if (demoTables[5].currentOrder.length < 2) demoTables[5].currentOrder.push(getI('לזניה', '', true));
+
+            // Table 7 (Index 6)
+            demoTables[6].status = TableStatus.ORDERED;
+            demoTables[6].guests = 5;
+            demoTables[6].startTime = new Date(Date.now() - 1000 * 60 * 15);
+            demoTables[6].currentOrder = [getI('כריך בלקני'), getI('כריך סביח'), getI('סלט קינואה'), getI('קולה'), getI('מים')].filter(Boolean);
+
+            // Table 9 (Index 8)
+            demoTables[8].status = TableStatus.OCCUPIED;
+            demoTables[8].guests = 1;
+            demoTables[8].startTime = new Date(Date.now() - 1000 * 60 * 10);
+            demoTables[8].currentOrder = [getI('אספרסו'), getI('עוגת')].filter(Boolean);
+
+            // Important: Pass the new full object to setTables. 
+            // The hook will sanitize and upload it.
+            setTables(demoTables);
+            showToast('מצב הדגמה הופעל וסונכרן לענן!');
+            setActiveView('floorplan'); 
+          },
+          true
+      );
+  };
+
+  const handleResetData = () => {
+      requestConfirmation(
+          'איפוס נתונים',
+          'האם לאפס את כל הנתונים למצב התחלתי?',
+          () => {
+            setTables(JSON.parse(JSON.stringify(INITIAL_TABLES)));
+            showToast('הנתונים אופסו בענן');
+          },
+          true
+      );
+  };
+
+  // --- Handlers ---
   const handleTableSelect = (id: number) => { setSelectedTableId(id); };
-  const handleUpdateOrder = (items: OrderItem[]) => { setTables((prev: Table[]) => { const current = Array.isArray(prev) ? prev : INITIAL_TABLES; return current.map(t => t.id === selectedTableId ? { ...t, currentOrder: items, status: items.length > 0 ? TableStatus.OCCUPIED : TableStatus.FREE } : t); }); };
-  const handleUpdateGuests = (guests: number) => { if (selectedTableId === null) return; setTables((prev: Table[]) => { const current = Array.isArray(prev) ? prev : INITIAL_TABLES; return current.map(t => t.id === selectedTableId ? { ...t, guests } : t); }); };
+  
+  const handleUpdateOrder = (items: OrderItem[]) => {
+    setTables((prev: Table[]) => {
+        const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+        return current.map(t => t.id === selectedTableId ? { ...t, currentOrder: items, status: items.length > 0 ? TableStatus.OCCUPIED : TableStatus.FREE } : t);
+    });
+  };
+  
+  const handleUpdateGuests = (guests: number) => {
+    if (selectedTableId === null) return;
+    setTables((prev: Table[]) => {
+        const current = Array.isArray(prev) ? prev : INITIAL_TABLES;
+        return current.map(t => t.id === selectedTableId ? { ...t, guests } : t);
+    });
+  };
+  
   const handleSendOrderTrigger = () => { 
       if (selectedTableId === null) return;
       const table = safeTables.find(t => t.id === selectedTableId);
@@ -102,6 +193,7 @@ const App: React.FC = () => {
           setSelectedTableId(null);
       }});
   };
+  
   const handlePrintBillTrigger = () => { 
       if (selectedTableId === null) return;
       const table = safeTables.find(t => t.id === selectedTableId);
@@ -109,11 +201,17 @@ const App: React.FC = () => {
       const html = generateBillHTML(table);
       setPrintModal({ isOpen: true, title: 'הדפסת חשבון', htmlContent: html, onConfirm: () => { showToast('חשבון הודפס'); } });
   };
+  
   const handleRequestBillTrigger = () => { requestConfirmation('בקשת חשבון', 'לסמן כמבקש חשבון?', () => { if (selectedTableId === null) return; setTables((prev: Table[]) => { const current = Array.isArray(prev) ? prev : INITIAL_TABLES; return current.map(t => t.id === selectedTableId ? { ...t, status: TableStatus.PAYMENT } : t); }); showToast('עודכן'); setSelectedTableId(null); }, false); };
+  
   const handleCloseTableTrigger = () => { requestConfirmation('סגירת חשבון', 'לבצע צ׳ק אאוט?', () => { if (selectedTableId === null) return; setTables((prev: Table[]) => { const current = Array.isArray(prev) ? prev : INITIAL_TABLES; return current.map(t => { if (t.id === selectedTableId) { const newHistory = [...(t.orderHistory || [])]; if ((t.currentOrder || []).length > 0) { newHistory.unshift({ id: `hist_${Date.now()}`, items: [...t.currentOrder], total: t.currentOrder.reduce((acc, i) => acc + i.price, 0), date: new Date() }); } return { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined, orderHistory: newHistory }; } return t; }); }); setSelectedTableId(null); showToast('החשבון נסגר'); }, false); };
+  
   const handleResetTableTrigger = () => { requestConfirmation('איפוס שולחן', 'מחיקה ללא שמירה.', () => { if (selectedTableId === null) return; setTables((prev: Table[]) => { const current = Array.isArray(prev) ? prev : INITIAL_TABLES; return current.map(t => t.id === selectedTableId ? { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined } : t); }); setSelectedTableId(null); showToast('אופס', 'error'); }, true); };
+  
   const handleEndShiftTrigger = () => { requestConfirmation('סיום משמרת', 'איפוס כללי.', () => { setTables((prev: Table[]) => { const current = Array.isArray(prev) ? prev : INITIAL_TABLES; return current.map(t => { const newHistory = [...(t.orderHistory || [])]; if ((t.currentOrder || []).length > 0) { newHistory.unshift({ id: `hist_shift_${Date.now()}`, items: [...t.currentOrder], total: t.currentOrder.reduce((acc, i) => acc + i.price, 0), date: new Date() }); } return { ...t, status: TableStatus.FREE, currentOrder: [], guests: 0, startTime: undefined, orderHistory: newHistory }; }); }); showToast('משמרת הסתיימה'); }, true); };
+  
   const fetchChecklist = async () => { setShowChecklist(true); if (!checklistContent) { setLoadingChecklist(true); const content = await getWaitStaffChecklist(); setChecklistContent(content); setLoadingChecklist(false); } }
+  
   const selectedTable = safeTables.find(t => t.id === selectedTableId);
   const getElapsedMinutes = (startTime?: Date) => { if (!startTime) return 0; return Math.floor((new Date().getTime() - new Date(startTime).getTime()) / 60000); };
   const getTimerColor = (minutes: number) => { if (minutes > 20) return 'bg-red-100 border-red-300 text-red-800 animate-pulse'; if (minutes > 10) return 'bg-yellow-100 border-yellow-300 text-yellow-800'; return 'bg-white border-primary'; };
@@ -131,7 +229,7 @@ const App: React.FC = () => {
             activeView={activeView} 
             setView={setActiveView} 
             openChecklist={fetchChecklist}
-            onOpenAdmin={() => {}} // Deprecated, handled by user role
+            onOpenAdmin={() => {}} 
             isAdmin={currentUser.role === 'admin'}
             currentUser={currentUser}
             onLogout={handleLogout}

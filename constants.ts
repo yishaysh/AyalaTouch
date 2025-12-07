@@ -77,6 +77,6 @@ export const INITIAL_TABLES: Table[] = [
 
 export const INITIAL_USERS: User[] = [
   { id: 'u1', name: 'מנהל ראשי', role: 'admin', pin: '1234', isActive: true },
-  { id: 'u2', name: 'מלצר 1', role: 'waiter', pin: '1111', isActive: true },
-  { id: 'u3', name: 'מלצר 2', role: 'waiter', pin: '2222', isActive: true },
+  { id: 'u2', name: 'שוהם', role: 'waiter', pin: '1111', isActive: true },
+  { id: 'u3', name: 'אביה', role: 'waiter', pin: '2222', isActive: true },
 ];
